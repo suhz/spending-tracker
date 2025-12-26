@@ -3,7 +3,7 @@
   "short_name": "Spending",
   "description": "Track your daily spending and manage budgets. Privacy-focused - all data stored locally.",
   "author": "Suhaimi Amir",
-  "start_url": "/spending-tracker.html",
+  "start_url": "./spending-tracker.html",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#2563eb",
