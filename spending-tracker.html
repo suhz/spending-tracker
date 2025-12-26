@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#2563eb">
+    <meta name="author" content="Suhaimi Amir">
+    <meta name="description" content="Privacy-focused spending tracker - all data stored locally on your device">
+    <title>Spending Tracker</title>
+    <link rel="manifest" href="manifest.json">
+    <!--
+        Spending Tracker
+        Author: Suhaimi Amir
+        License: MIT
+        Built with assistance from Claude AI
+    -->
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f3f4f6;
+            padding: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        h1, h2 { margin-bottom: 16px; color: #1f2937; }
+        h1 { font-size: 24px; }
+        h2 { font-size: 18px; }
+        .stat {
+            margin-bottom: 12px;
+            padding: 12px;
+            background: #f9fafb;
+            border-radius: 6px;
+        }
+        .stat-label { 
+            font-size: 12px; 
+            color: #6b7280; 
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .stat-value { 
+            font-size: 24px; 
+            font-weight: bold; 
+            color: #1f2937;
+            margin-top: 4px;
+        }
+        .stat-compact {
+            padding: 8px;
+            background: #f9fafb;
+            border-radius: 6px;
+            text-align: center;
+        }
+        .stat-label-compact {
+            font-size: 11px;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+        .stat-value-compact {
+            font-size: 18px;
+            font-weight: bold;
+            color: #1f2937;
+        }
+        .warning { color: #dc2626; }
+        .success { color: #059669; }
+        input, button {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+        input.warning-input {
+            border-color: #f97316;
+            background-color: #fff7ed;
+        }
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        button:hover { background: #1d4ed8; }
+        button.secondary {
+            background: #6b7280;
+        }
+        button.secondary:hover { background: #4b5563; }
+        button.danger {
+            background: #dc2626;
+        }
+        button.danger:hover { background: #b91c1c; }
+        .hidden { display: none; }
+        .transaction {
+            padding: 10px;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+        }
+        .transaction:last-child { border-bottom: none; }
+        .transaction-date { font-size: 12px; color: #6b7280; }
+        .transaction-amount { font-weight: 600; font-size: 14px; }
+        .transaction-actions {
+            opacity: 0;
+            transition: opacity 0.2s;
+            display: flex;
+            gap: 6px;
+            margin-top: 4px;
+        }
+        .transaction:hover .transaction-actions {
+            opacity: 1;
+        }
+        .icon-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 2px;
+            width: auto;
+            margin: 0;
+            font-size: 14px;
+            opacity: 0.6;
+        }
+        .icon-btn:hover {
+            opacity: 1;
+            background: none;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #374151;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <!-- Main Screen -->
+    <div id="mainScreen" class="hidden">
+        <h1>Spending Tracker</h1>
+        
+        <div class="card hidden" id="testDateSection" style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 8px 12px;">
+            <label style="font-size: 10px; color: #92400e; margin-bottom: 4px;">🧪 Test Date</label>
+            <input type="date" id="testDate" style="margin-bottom: 0; padding: 8px; font-size: 14px;">
+        </div>
+        
+        <div class="card" style="padding: 12px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div class="stat-compact">
+                    <div class="stat-label-compact">Balance</div>
+                    <div class="stat-value-compact"><span id="cycleBalance">0</span></div>
+                </div>
+                <div class="stat-compact">
+                    <div class="stat-label-compact">Today's Limit</div>
+                    <div class="stat-value-compact" id="dailyLimit">RM 0</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Add Spending</h2>
+            <input type="number" id="spendAmount" placeholder="Amount (RM)" step="0.01">
+            <div id="warningMessage" class="hidden" style="color: #dc2626; font-size: 14px; margin-top: -8px; margin-bottom: 12px;">
+                ⚠️ Amount exceeds today's limit
+            </div>
+            <input type="text" id="spendNote" placeholder="Note (optional)">
+            <button id="btnAddSpending">Record Spending</button>
+        </div>
+
+        <div class="card" style="padding: 16px;">
+            <h2 style="font-size: 14px; color: #6b7280; margin-bottom: 12px;">Recent Transactions</h2>
+            <div id="transactionList"></div>
+        </div>
+
+        <button class="secondary" id="btnShowEndCycle" style="padding: 10px; font-size: 14px;">End Cycle</button>
+        
+        <div style="text-align: center; margin-top: 20px;">
+            <div style="margin-top: 8px; font-size: 11px; color: #9ca3af;">
+                🔒 All data stored locally on your device only. <a href="privacy.html" target="_blank" style="color: #6b7280; text-decoration: underline;">Privacy Policy</a>
+            </div>
+            <button id="btnToggleTestMode" style="background: none; border: none; color: #6b7280; font-size: 12px; cursor: pointer; padding: 8px; width: auto; text-decoration: underline;">
+                Test Mode
+            </button>
+        </div>
+    </div>
+
+    <!-- New Cycle Screen -->
+    <div id="newCycleScreen">
+        <h1>Create New Cycle</h1>
+        <div class="card">
+            <label>Maximum Spending Amount (RM)</label>
+            <input type="number" id="maxAmount" placeholder="e.g., 3000" step="0.01">
+            
+            <label>Cycle End Date</label>
+            <input type="date" id="endDate">
+            
+            <button id="btnCreateCycle">Start Cycle</button>
+        </div>
+    </div>
+
+    <!-- End Cycle Confirmation -->
+    <div id="endCycleConfirm" class="hidden">
+        <h1>End Current Cycle</h1>
+        <div class="card">
+            <p style="margin-bottom: 16px;">
+                Remaining balance: <strong>RM <span id="remainingBalance">0</span></strong>
+            </p>
+            <p style="margin-bottom: 16px; color: #6b7280;">
+                This balance will be carried forward to the next cycle.
+            </p>
+            <button id="btnEndCycle">End Cycle & Create New</button>
+            <button class="secondary" id="btnCancelEndCycle">Cancel</button>
+        </div>
+    </div>
+
+    <script>
+        let db;
+        let currentCycle = null;
+
+        // Test date helper functions
+        function getCurrentDate() {
+            const testDate = localStorage.getItem('testDate');
+            if (testDate) {
+                return new Date(testDate);
+            }
+            return new Date();
+        }
+
+        function updateTestDate() {
+            const testDate = document.getElementById('testDate').value;
+            if (testDate) {
+                localStorage.setItem('testDate', testDate);
+            } else {
+                localStorage.removeItem('testDate');
+            }
+            updateStats();
+        }
+
+        // Initialize IndexedDB
+        function initDB() {
+            const request = indexedDB.open('SpendingTracker', 1);
+            
+            request.onerror = () => alert('Database error');
+            
+            request.onsuccess = (event) => {
+                db = event.target.result;
+                loadCurrentCycle();
+            };
+            
+            request.onupgradeneeded = (event) => {
+                db = event.target.result;
+                
+                if (!db.objectStoreNames.contains('cycles')) {
+                    const cycleStore = db.createObjectStore('cycles', { keyPath: 'id', autoIncrement: true });
+                    cycleStore.createIndex('is_active', 'is_active', { unique: false });
+                }
+                
+                if (!db.objectStoreNames.contains('transactions')) {
+                    const txStore = db.createObjectStore('transactions', { keyPath: 'id', autoIncrement: true });
+                    txStore.createIndex('cycle_id', 'cycle_id', { unique: false });
+                }
+            };
+        }
+
+        function loadCurrentCycle() {
+            const tx = db.transaction(['cycles'], 'readonly');
+            const store = tx.objectStore('cycles');
+            const index = store.index('is_active');
+            const request = index.get(1);
+            
+            request.onsuccess = () => {
+                currentCycle = request.result;
+                if (currentCycle) {
+                    showMainScreen();
+                } else {
+                    showNewCycleScreen();
+                }
+            };
+        }
+
+        function showMainScreen() {
+            document.getElementById('mainScreen').classList.remove('hidden');
+            document.getElementById('newCycleScreen').classList.add('hidden');
+            document.getElementById('endCycleConfirm').classList.add('hidden');
+            
+            // Load test date if exists, otherwise use today
+            const testDate = localStorage.getItem('testDate');
+            if (testDate) {
+                document.getElementById('testDate').value = testDate;
+            } else {
+                document.getElementById('testDate').value = new Date().toISOString().split('T')[0];
+            }
+            
+            // Restore test mode visibility
+            const testModeVisible = localStorage.getItem('testModeVisible');
+            if (testModeVisible === 'true') {
+                document.getElementById('testDateSection').classList.remove('hidden');
+            }
+            
+            // Attach event listeners for main screen buttons
+            document.getElementById('testDate').onclick = null;
+            document.getElementById('testDate').addEventListener('change', updateTestDate);
+            
+            document.getElementById('btnAddSpending').onclick = null;
+            document.getElementById('btnAddSpending').addEventListener('click', addSpending);
+            
+            document.getElementById('btnShowEndCycle').onclick = null;
+            document.getElementById('btnShowEndCycle').addEventListener('click', showEndCycleConfirm);
+            
+            document.getElementById('btnToggleTestMode').onclick = null;
+            document.getElementById('btnToggleTestMode').addEventListener('click', toggleTestMode);
+            
+            // Attach input event listener for amount warning
+            document.getElementById('spendAmount').oninput = null;
+            document.getElementById('spendAmount').addEventListener('input', checkAmountWarning);
+            
+            updateStats();
+            loadTransactions();
+        }
+
+        function showNewCycleScreen() {
+            document.getElementById('mainScreen').classList.add('hidden');
+            document.getElementById('newCycleScreen').classList.remove('hidden');
+            document.getElementById('endCycleConfirm').classList.add('hidden');
+            
+            // Set default end date to 1 month from current date (test or real)
+            const nextMonth = getCurrentDate();
+            nextMonth.setMonth(nextMonth.getMonth() + 1);
+            document.getElementById('endDate').value = nextMonth.toISOString().split('T')[0];
+            
+            // Attach event listener for create cycle button
+            document.getElementById('btnCreateCycle').onclick = null;
+            document.getElementById('btnCreateCycle').addEventListener('click', createCycle);
+        }
+
+        function createCycle() {
+            const maxAmount = parseFloat(document.getElementById('maxAmount').value);
+            const endDate = document.getElementById('endDate').value;
+            
+            if (!maxAmount || !endDate) {
+                alert('Please fill in all fields');
+                return;
+            }
+            
+            const cycle = {
+                max_amount: maxAmount,
+                start_date: getCurrentDate().toISOString(),
+                end_date: new Date(endDate).toISOString(),
+                is_active: 1
+            };
+            
+            const tx = db.transaction(['cycles'], 'readwrite');
+            const store = tx.objectStore('cycles');
+            const request = store.add(cycle);
+            
+            request.onsuccess = () => {
+                loadCurrentCycle();
+            };
+        }
+
+        function updateStats() {
+            if (!currentCycle) return;
+            
+            const tx = db.transaction(['transactions'], 'readonly');
+            const store = tx.objectStore('transactions');
+            const index = store.index('cycle_id');
+            const request = index.getAll(currentCycle.id);
+            
+            request.onsuccess = () => {
+                const transactions = request.result;
+                const totalSpent = transactions.reduce((sum, tx) => sum + tx.amount, 0);
+                const balance = currentCycle.max_amount - totalSpent;
+                
+                // Calculate today's spending using test date
+                const today = getCurrentDate().toDateString();
+                const todayTransactions = transactions.filter(tx => 
+                    new Date(tx.date).toDateString() === today
+                );
+                const todaySpent = todayTransactions.reduce((sum, tx) => sum + tx.amount, 0);
+                
+                const now = getCurrentDate();
+                const endDate = new Date(currentCycle.end_date);
+                const daysRemaining = Math.max(0, Math.ceil((endDate - now) / (1000 * 60 * 60 * 24)));
+                
+                const dailyLimit = daysRemaining > 0 ? balance / daysRemaining : balance;
+                const todayRemaining = dailyLimit - todaySpent;
+                
+                document.getElementById('cycleBalance').textContent = `RM ${balance.toFixed(2)} / ${currentCycle.max_amount.toFixed(2)}`;
+                
+                const limitEl = document.getElementById('dailyLimit');
+                limitEl.textContent = `RM ${todayRemaining.toFixed(2)} / ${dailyLimit.toFixed(2)}`;
+                limitEl.className = 'stat-value-compact ' + (todayRemaining < 0 ? 'warning' : 'success');
+            };
+        }
+
+        function checkAmountWarning() {
+            const amount = parseFloat(document.getElementById('spendAmount').value);
+            const dailyLimitText = document.getElementById('dailyLimit').textContent;
+            const parts = dailyLimitText.split('/');
+            const todayRemaining = parseFloat(parts[0].replace('RM', '').trim());
+            
+            const amountInput = document.getElementById('spendAmount');
+            const warningMessage = document.getElementById('warningMessage');
+            
+            if (amount > 0 && amount > todayRemaining && todayRemaining > 0) {
+                amountInput.classList.add('warning-input');
+                warningMessage.classList.remove('hidden');
+            } else {
+                amountInput.classList.remove('warning-input');
+                warningMessage.classList.add('hidden');
+            }
+        }
+
+        function toggleTestMode() {
+            const testSection = document.getElementById('testDateSection');
+            if (testSection.classList.contains('hidden')) {
+                testSection.classList.remove('hidden');
+                localStorage.setItem('testModeVisible', 'true');
+            } else {
+                testSection.classList.add('hidden');
+                localStorage.removeItem('testModeVisible');
+            }
+        }
+
+        function addSpending() {
+            const amount = parseFloat(document.getElementById('spendAmount').value);
+            const note = document.getElementById('spendNote').value;
+            
+            if (!amount || amount <= 0) {
+                alert('Please enter a valid amount');
+                return;
+            }
+            
+            // Use current date (test or real)
+            const currentDate = getCurrentDate();
+            
+            const transaction = {
+                cycle_id: currentCycle.id,
+                amount: amount,
+                date: currentDate.toISOString(),
+                note: note || ''
+            };
+            
+            const tx = db.transaction(['transactions'], 'readwrite');
+            const store = tx.objectStore('transactions');
+            const request = store.add(transaction);
+            
+            request.onsuccess = () => {
+                document.getElementById('spendAmount').value = '';
+                document.getElementById('spendNote').value = '';
+                document.getElementById('spendAmount').classList.remove('warning-input');
+                document.getElementById('warningMessage').classList.add('hidden');
+                updateStats();
+                loadTransactions();
+            };
+            
+            request.onerror = (e) => {
+                alert('Error saving transaction: ' + e.target.error);
+            };
+        }
+
+        function loadTransactions() {
+            const tx = db.transaction(['transactions'], 'readonly');
+            const store = tx.objectStore('transactions');
+            const index = store.index('cycle_id');
+            const request = index.getAll(currentCycle.id);
+            
+            request.onsuccess = () => {
+                const transactions = request.result.reverse();
+                const listEl = document.getElementById('transactionList');
+                
+                if (transactions.length === 0) {
+                    listEl.innerHTML = '<p style="color: #6b7280; text-align: center; padding: 20px;">No transactions yet</p>';
+                    return;
+                }
+                
+                listEl.innerHTML = '';
+                
+                transactions.forEach(t => {
+                    const txDiv = document.createElement('div');
+                    txDiv.className = 'transaction';
+                    txDiv.innerHTML = `
+                        <div style="flex: 1;">
+                            <div><strong>${t.note || 'Spend'}</strong></div>
+                            <div class="transaction-date">${new Date(t.date).toLocaleString('en-MY')}</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div class="transaction-amount">RM ${t.amount.toFixed(2)}</div>
+                            <div class="transaction-actions">
+                                <button type="button" class="icon-btn edit-tx" title="Edit">✏️</button>
+                                <button type="button" class="icon-btn delete-tx" title="Delete">🗑️</button>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Add event listeners directly
+                    const editBtn = txDiv.querySelector('.edit-tx');
+                    const deleteBtn = txDiv.querySelector('.delete-tx');
+                    
+                    editBtn.onclick = () => editTransaction(t.id);
+                    deleteBtn.onclick = () => deleteTransaction(t.id);
+                    
+                    listEl.appendChild(txDiv);
+                });
+            };
+        }
+
+        function deleteTransaction(id) {
+            if (!confirm('Delete this transaction?')) {
+                return;
+            }
+            
+            const tx = db.transaction(['transactions'], 'readwrite');
+            const store = tx.objectStore('transactions');
+            const request = store.delete(id);
+            
+            request.onsuccess = () => {
+                updateStats();
+                loadTransactions();
+            };
+        }
+
+        function editTransaction(id) {
+            const tx = db.transaction(['transactions'], 'readonly');
+            const store = tx.objectStore('transactions');
+            const request = store.get(id);
+            
+            request.onsuccess = () => {
+                const transaction = request.result;
+                const newAmount = prompt('Enter new amount:', transaction.amount);
+                
+                if (newAmount === null) return;
+                
+                const amount = parseFloat(newAmount);
+                if (!amount || amount <= 0) {
+                    alert('Invalid amount');
+                    return;
+                }
+                
+                transaction.amount = amount;
+                
+                const updateTx = db.transaction(['transactions'], 'readwrite');
+                const updateStore = updateTx.objectStore('transactions');
+                const updateRequest = updateStore.put(transaction);
+                
+                updateRequest.onsuccess = () => {
+                    updateStats();
+                    loadTransactions();
+                };
+            };
+        }
+
+        function showEndCycleConfirm() {
+            const balanceText = document.getElementById('cycleBalance').textContent;
+            // Extract balance from "RM 750.00 / 1000.00" format
+            const balance = parseFloat(balanceText.split('/')[0].replace('RM', '').trim());
+            document.getElementById('remainingBalance').textContent = balance.toFixed(2);
+            document.getElementById('mainScreen').classList.add('hidden');
+            document.getElementById('endCycleConfirm').classList.remove('hidden');
+            
+            // Attach event listeners for end cycle buttons
+            document.getElementById('btnEndCycle').onclick = null;
+            document.getElementById('btnEndCycle').addEventListener('click', endCycle);
+            
+            document.getElementById('btnCancelEndCycle').onclick = null;
+            document.getElementById('btnCancelEndCycle').addEventListener('click', cancelEndCycle);
+        }
+
+        function cancelEndCycle() {
+            showMainScreen();
+        }
+
+        function endCycle() {
+            const balance = parseFloat(document.getElementById('remainingBalance').textContent);
+            
+            // Deactivate current cycle
+            const tx = db.transaction(['cycles'], 'readwrite');
+            const store = tx.objectStore('cycles');
+            currentCycle.is_active = 0;
+            store.put(currentCycle);
+            
+            tx.oncomplete = () => {
+                // Show new cycle screen with carried forward balance
+                currentCycle = null;
+                showNewCycleScreen();
+                if (balance > 0) {
+                    document.getElementById('maxAmount').value = balance.toFixed(2);
+                }
+            };
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            initDB();
+        });
+
+        // Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js');
+        }
+    </script>
+</body>
+</html>
