@@ -33,10 +33,8 @@ A simple, privacy-focused Progressive Web App (PWA) for tracking daily spending 
 
 ## 📸 Screenshots
 
-```
 ![Main Screen](screenshots/main.png)
 ![Add Spending](screenshots/add-spending.png)
-```
 
 ## 🛠️ How It Works
 
