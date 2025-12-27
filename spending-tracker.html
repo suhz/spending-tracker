@@ -141,8 +141,16 @@
     </style>
 </head>
 <body>
+    <!-- Loading Screen -->
+    <div id="loadingScreen" style="display: flex; align-items: center; justify-content: center; height: 100vh; background: #f3f4f6;">
+        <div style="text-align: center;">
+            <div style="font-size: 48px; margin-bottom: 16px;">💰</div>
+            <div id="loadingMessage" style="color: #6b7280; font-size: 14px;">Loading...</div>
+        </div>
+    </div>
+
     <!-- Main Screen -->
-    <div id="mainScreen" class="hidden">
+    <div id="mainScreen" class="hidden" style="display: none;">
         <h1>Spending Tracker</h1>
         
         <div class="card hidden" id="testDateSection" style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 8px 12px;">
@@ -184,6 +192,9 @@
             <div style="margin-top: 8px; font-size: 11px; color: #9ca3af;">
                 🔒 All data stored locally on your device only. <a href="privacy.html" target="_blank" style="color: #6b7280; text-decoration: underline;">Privacy Policy</a>
             </div>
+            <div style="margin-top: 4px; font-size: 10px; color: #d1d5db;">
+                <span id="appVersion"></span>
+            </div>
             <button id="btnToggleTestMode" style="background: none; border: none; color: #6b7280; font-size: 12px; cursor: pointer; padding: 8px; width: auto; text-decoration: underline;">
                 Test Mode
             </button>
@@ -222,6 +233,7 @@
     <script>
         let db;
         let currentCycle = null;
+        const APP_VERSION = 'v1.0.1';
 
         // Test date helper functions
         function getCurrentDate() {
@@ -308,6 +320,7 @@
 
         function showMainScreen() {
             document.getElementById('mainScreen').classList.remove('hidden');
+            document.getElementById('mainScreen').style.display = 'block';
             document.getElementById('newCycleScreen').classList.add('hidden');
             document.getElementById('endCycleConfirm').classList.add('hidden');
             
@@ -352,6 +365,7 @@
 
         function showNewCycleScreen() {
             document.getElementById('mainScreen').classList.add('hidden');
+            document.getElementById('mainScreen').style.display = 'none';
             document.getElementById('newCycleScreen').classList.remove('hidden');
             document.getElementById('endCycleConfirm').classList.add('hidden');
             
@@ -593,6 +607,7 @@
             const balance = parseFloat(balanceText.split('/')[0].replace('RM', '').trim());
             document.getElementById('remainingBalance').textContent = balance.toFixed(2);
             document.getElementById('mainScreen').classList.add('hidden');
+            document.getElementById('mainScreen').style.display = 'none';
             document.getElementById('endCycleConfirm').classList.remove('hidden');
             
             // Attach event listeners for end cycle buttons
@@ -628,12 +643,82 @@
 
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
-            initDB();
+            // Don't init DB until we've checked for updates
+            checkForUpdatesAndInit();
         });
 
-        // Service Worker Registration
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js');
+        // Service Worker Registration with Update Check on Launch
+        async function checkForUpdatesAndInit() {
+            const loadingScreen = document.getElementById('loadingScreen');
+            const loadingMessage = document.getElementById('loadingMessage');
+            
+            if ('serviceWorker' in navigator) {
+                try {
+                    const registration = await navigator.serviceWorker.register('sw.js');
+                    
+                    // Check for updates immediately
+                    await registration.update();
+                    
+                    // Check if there's an update waiting
+                    if (registration.waiting) {
+                        // There's an update ready!
+                        loadingMessage.textContent = 'Updating app...';
+                        
+                        // Tell the waiting service worker to activate
+                        registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+                        
+                        // Wait a moment for activation, then reload
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                        window.location.reload();
+                        return;
+                    }
+                    
+                    // Check if there's an update installing
+                    if (registration.installing) {
+                        loadingMessage.textContent = 'Updating app...';
+                        
+                        // Wait for it to finish installing
+                        await new Promise((resolve) => {
+                            registration.installing.addEventListener('statechange', function() {
+                                if (this.state === 'installed') {
+                                    resolve();
+                                }
+                            });
+                        });
+                        
+                        // Tell new service worker to activate
+                        if (registration.waiting) {
+                            registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+                        }
+                        
+                        // Wait a moment, then reload
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                        window.location.reload();
+                        return;
+                    }
+                    
+                    // No update needed, continue loading app
+                    loadApp();
+                    
+                } catch (error) {
+                    console.error('Service worker registration failed:', error);
+                    loadApp(); // Load app anyway
+                }
+            } else {
+                // No service worker support, just load app
+                loadApp();
+            }
+            
+            function loadApp() {
+                // Hide loading screen
+                loadingScreen.style.display = 'none';
+                
+                // Initialize the app
+                initDB();
+                
+                // Display version
+                document.getElementById('appVersion').textContent = APP_VERSION;
+            }
         }
     </script>
 </body>
