@@ -115,6 +115,7 @@
             opacity: 1;
             transition: opacity 0.2s;
             display: flex;
+            justify-content: flex-end;
             gap: 6px;
             margin-top: 4px;
         }
@@ -233,7 +234,7 @@
     <script>
         let db;
         let currentCycle = null;
-        const APP_VERSION = 'v1.0.1';
+        const APP_VERSION = 'v1.0.2';
 
         // Test date helper functions
         function getCurrentDate() {
@@ -535,7 +536,7 @@
                             <div><strong>${t.note || 'Spend'}</strong></div>
                             <div class="transaction-date">${new Date(t.date).toLocaleString('en-MY')}</div>
                         </div>
-                        <div style="text-align: right;">
+                        <div style="display: flex; flex-direction: column; align-items: flex-end;">
                             <div class="transaction-amount">RM ${t.amount.toFixed(2)}</div>
                             <div class="transaction-actions">
                                 <button type="button" class="icon-btn edit-tx" title="Edit">✏️</button>
