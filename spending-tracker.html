@@ -15,10 +15,28 @@
         Built with assistance from Claude AI
     -->
     <style>
+        /* Critical CSS - Load immediately to prevent blank screen */
+        body {
+            margin: 0;
+            padding: 0;
+            background: #f3f4f6;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        #loadingScreen {
+            display: flex !important;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            width: 100vw;
+            background: #f3f4f6;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 9999;
+        }
+        
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: #f3f4f6;
             padding: 20px;
             max-width: 600px;
             margin: 0 auto;
@@ -143,7 +161,7 @@
 </head>
 <body>
     <!-- Loading Screen -->
-    <div id="loadingScreen" style="display: flex; align-items: center; justify-content: center; height: 100vh; background: #f3f4f6;">
+    <div id="loadingScreen" style="display: flex; align-items: center; justify-content: center; height: 100vh; width: 100vw; background: #f3f4f6; position: fixed; top: 0; left: 0; z-index: 9999;">
         <div style="text-align: center;">
             <div style="font-size: 48px; margin-bottom: 16px;">💰</div>
             <div id="loadingMessage" style="color: #6b7280; font-size: 14px;">Loading...</div>
@@ -234,7 +252,7 @@
     <script>
         let db;
         let currentCycle = null;
-        const APP_VERSION = 'v1.0.3';
+        const APP_VERSION = 'v1.0.4';
 
         // Test date helper functions
         function getCurrentDate() {
